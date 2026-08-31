@@ -5,11 +5,13 @@ public class Ville {
     String nom;
     Double population;
 
+    // Constructeur
     public Ville(String nom, Double population) {
         this.nom = nom;
         this.population = population;
     }
 
+    // Getters & Setters
     public String getNom() {
         return nom;
     }
