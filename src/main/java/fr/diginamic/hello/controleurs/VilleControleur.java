@@ -19,7 +19,7 @@ public class VilleControleur {
         villes.add(new Ville("Paris", 786490.0));
         villes.add(new Ville("Montpellier", 3465875.0));
         villes.add(new Ville("Bordeaux", 546780.0));
-        villes.add(new Ville("Toulouse", 2345678.0));
+        villes.add(new Ville("Toulouse", 2348585.0));
         villes.add(new Ville("Annecy", 3456789.0));
         return villes;
     }
