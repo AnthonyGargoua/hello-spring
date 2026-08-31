@@ -12,9 +12,13 @@ public class HelloControleur {
 
     private final HelloService service;
 
+    // Constructeur
     public HelloControleur(HelloService service) {
         this.service = service;
     }
+
+    // Sans constructeur
+    // Mettre juste @Autowired et private HelloService service;
 
     @GetMapping
     public String direHello(){
