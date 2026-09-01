@@ -3,6 +3,13 @@ package fr.diginamic.hello.controleurs;
 
 import fr.diginamic.hello.entities.Ville;
 import fr.diginamic.hello.exceptions.VilleException;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.ArraySchema;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponse;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.annotation.PostConstruct;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -56,14 +63,27 @@ public class VilleControleur {
         }
     }
 
+    @Operation(summary = "Récupérer la liste de toutes les villes")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Liste des villes renvoyée avec succès",
+                    content = @Content(array = @ArraySchema(schema = @Schema(implementation = Ville.class))))
+    })
     @GetMapping
     public List<Ville> getVilles(){
         return villes;
     }
 
     // @PathVariable, récupère la valeur présente dans l'URL (ex: /ville/3 -> id = 3)
+    @Operation(summary = "Récupérer une ville par son id")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Ville trouvée",
+                    content = @Content(schema = @Schema(implementation = Ville.class))),
+            @ApiResponse(responseCode = "404", description = "Aucune ville trouvée pour cet id")
+    })
     @GetMapping("/{id}")
-    public ResponseEntity<Ville> getVilleParId(@PathVariable int id){
+    public ResponseEntity<Ville> getVilleParId(
+            @Parameter(description = "Identifiant de la ville", example = "1", required = true)
+            @PathVariable int id){
         Ville ville = trouverParId(id);
 
         if(ville == null){
@@ -74,6 +94,11 @@ public class VilleControleur {
     }
 
     // Ici le VilleExceptionHandler permet d'intercepter l'exception automatiquement
+    @Operation(summary = "Ajouter une nouvelle ville")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Ville insérée avec succès"),
+            @ApiResponse(responseCode = "400", description = "Ville invalide ou déjà existante")
+    })
     @PostMapping
     public ResponseEntity<String> ajouterVille(@RequestBody Ville nouvelleVille) throws VilleException{
         validerVille(nouvelleVille);
@@ -89,8 +114,17 @@ public class VilleControleur {
     }
 
     // @RequestBody, Spring convertit automatiquement le JSON envoyé dans le corps de la requête en objet Ville, avec les nouvelles valeurs à appliquer
+    @Operation(summary = "Modifier une ville existante")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Ville modifiée avec succès"),
+            @ApiResponse(responseCode = "404", description = "Aucune ville trouvée pour cet id"),
+            @ApiResponse(responseCode = "400", description = "Données invalides")
+    })
     @PutMapping("/{id}")
-    public ResponseEntity<String> modifierVille(@PathVariable int id, @RequestBody Ville villeModifiee) throws VilleException{
+    public ResponseEntity<String> modifierVille(
+            @Parameter(description = "Identifiant de la ville à modifier", example = "1", required = true)
+            @PathVariable int id,
+            @RequestBody Ville villeModifiee) throws VilleException{
         validerVille(villeModifiee);
 
         Ville ville = trouverParId(id);
@@ -106,8 +140,15 @@ public class VilleControleur {
     }
 
     // Même logique de recherche par id que pour le GET et le PUT (trouverParId), mais ici on supprime la ville trouvée de la liste au lieu de la lire ou la modifier.
+    @Operation(summary = "Supprimer une ville par son id")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Ville supprimée avec succès"),
+            @ApiResponse(responseCode = "404", description = "Aucune ville trouvée pour cet id")
+    })
     @DeleteMapping("/{id}")
-    public ResponseEntity<String> supprimerVille(@PathVariable int id){
+    public ResponseEntity<String> supprimerVille(
+            @Parameter(description = "Identifiant de la ville à supprimer", example = "1", required = true)
+            @PathVariable int id){
         Ville ville = trouverParId(id);
 
         if(ville == null){
@@ -120,8 +161,16 @@ public class VilleControleur {
 
     // @RequestParam permet de récupérer une valeur dans les paramètres de l'url après le ?
     // Par exemple : /ville/recherche/nom?nom=Bor -> nom = "Bor"
+    @Operation(summary = "Rechercher des villes dont le nom commence par une chaîne donnée")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Liste des villes correspondantes",
+                    content = @Content(array = @ArraySchema(schema = @Schema(implementation = Ville.class)))),
+            @ApiResponse(responseCode = "400", description = "Aucune ville trouvée")
+    })
     @GetMapping("/recherche/nom")
-    public ResponseEntity<List<Ville>> rechercherParNom(@RequestParam String nom) throws VilleException{
+    public ResponseEntity<List<Ville>> rechercherParNom(
+            @Parameter(description = "Début du nom recherché", example = "Pa", required = true)
+            @RequestParam String nom) throws VilleException{
         // .collect(Collectors.toList()) transforme le flux filtré en une vraie List, alors que findFirst() qui ne renvoyait qu'un seul élément.
         List<Ville> resultat = villes.stream().filter(v -> v.getNom().startsWith(nom)).collect(Collectors.toList());
 
@@ -132,8 +181,16 @@ public class VilleControleur {
     }
 
     // Même principe que rechercherParNom, mais on filtre sur la population plutôt que sur le nom
+    @Operation(summary = "Rechercher les villes dont la population dépasse un minimum")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Liste des villes correspondantes",
+                    content = @Content(array = @ArraySchema(schema = @Schema(implementation = Ville.class)))),
+            @ApiResponse(responseCode = "400", description = "Aucune ville trouvée")
+    })
     @GetMapping("/recherche/population-min")
-    public ResponseEntity<List<Ville>> rechercherParPopulationMin(@RequestParam Integer min) throws VilleException{
+    public ResponseEntity<List<Ville>> rechercherParPopulationMin(
+            @Parameter(description = "Population minimale", example = "100000", required = true)
+            @RequestParam Integer min) throws VilleException{
         List<Ville> resultat = villes.stream().filter(v -> v.getPopulation() > min).collect(Collectors.toList());
 
         if(resultat.isEmpty()){
@@ -143,8 +200,18 @@ public class VilleControleur {
     }
 
     // Même logique, mais avec deux paramètres (min et max) pour filtrer une fourchette de population
+    @Operation(summary = "Rechercher les villes dont la population est comprise entre deux valeurs")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Liste des villes correspondantes",
+                    content = @Content(array = @ArraySchema(schema = @Schema(implementation = Ville.class)))),
+            @ApiResponse(responseCode = "400", description = "Aucune ville trouvée")
+    })
     @GetMapping("/recherche/population-min-max")
-    public ResponseEntity<List<Ville>> rechercherParPopulationMinMax(@RequestParam Integer min, @RequestParam Integer max) throws VilleException{
+    public ResponseEntity<List<Ville>> rechercherParPopulationMinMax(
+            @Parameter(description = "Population minimale", example = "100000", required = true)
+            @RequestParam Integer min,
+            @Parameter(description = "Population maximale", example = "1000000", required = true)
+            @RequestParam Integer max) throws VilleException{
         List<Ville> resultat = villes.stream().filter(v -> v.getPopulation() >= min && v.getPopulation() <= max).collect(Collectors.toList());
 
         if(resultat.isEmpty()){
