@@ -2,8 +2,10 @@ package fr.diginamic.hello.entities;
 
 public class Ville {
 
-    String nom;
-    Double population;
+    // Rajout de l'id
+    private int id;
+    private String nom;
+    private Double population;
 
     // Constructeur
     public Ville(String nom, Double population) {
@@ -12,6 +14,14 @@ public class Ville {
     }
 
     // Getters & Setters
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
+    }
+
     public String getNom() {
         return nom;
     }
