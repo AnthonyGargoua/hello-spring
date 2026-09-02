@@ -1,10 +1,18 @@
 package fr.diginamic.hello.entities;
 
+import jakarta.validation.constraints.Min;
+import jakarta.validation.constraints.NotEmpty;
+import jakarta.validation.constraints.NotNull;
+import jakarta.validation.constraints.Size;
+
 public class Ville {
 
     // Rajout de l'id
     private int id;
+    @NotNull
+    @Size(min = 2)
     private String nom;
+    @Min(1)
     private Double population;
 
     // Constructeur

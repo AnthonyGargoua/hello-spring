@@ -11,6 +11,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.annotation.PostConstruct;
+import jakarta.validation.Valid; // permet d'utiliser @Valid, l'annotation qui déclenche le contrôle Bean Validation
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
@@ -99,8 +100,10 @@ public class VilleControleur {
             @ApiResponse(responseCode = "200", description = "Ville insérée avec succès"),
             @ApiResponse(responseCode = "400", description = "Ville invalide ou déjà existante")
     })
+    // @Valid déclenche automatiquement le contrôle des annotations posées sur Ville (@NotNull, @Size, @Min...)
+    // Si un contrôle échoue, Spring lève lui-même une MethodArgumentNotValidException, qu'on va récupérer dans le ControllerAdvice
     @PostMapping
-    public ResponseEntity<String> ajouterVille(@RequestBody Ville nouvelleVille) throws VilleException{
+    public ResponseEntity<String> ajouterVille(@Valid @RequestBody Ville nouvelleVille) throws VilleException{
         validerVille(nouvelleVille);
 
         boolean existeDeja = villes.stream().anyMatch(v -> v.getNom().equals(nouvelleVille.getNom()));
@@ -120,11 +123,13 @@ public class VilleControleur {
             @ApiResponse(responseCode = "404", description = "Aucune ville trouvée pour cet id"),
             @ApiResponse(responseCode = "400", description = "Données invalides")
     })
+    // Même contrôle Bean Validation que sur le POST : @Valid ici aussi déclenche la vérification, et c'est le même ExceptionHandler (défini une seule fois)
+    // qui va intercepter l'erreur
     @PutMapping("/{id}")
     public ResponseEntity<String> modifierVille(
             @Parameter(description = "Identifiant de la ville à modifier", example = "1", required = true)
             @PathVariable int id,
-            @RequestBody Ville villeModifiee) throws VilleException{
+            @Valid @RequestBody Ville villeModifiee) throws VilleException{
         validerVille(villeModifiee);
 
         Ville ville = trouverParId(id);
