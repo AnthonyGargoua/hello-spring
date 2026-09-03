@@ -26,7 +26,7 @@ public class Ville {
     private String nom;
     /** Population de la ville (doit être supérieure ou égale à 1). */
     @Min(1)
-    private Double population;
+    private Integer population;
     /** Département auquel appartient la ville. */
     @ManyToOne
     private Departement departement;
@@ -46,7 +46,7 @@ public class Ville {
      * @param nom nom de la ville
      * @param population population de la ville
      */
-    public Ville(String nom, Double population) {
+    public Ville(String nom, Integer population) {
         this.nom = nom;
         this.population = population;
     }
@@ -83,14 +83,14 @@ public class Ville {
     /**
      * @return la population de la ville
      */
-    public Double getPopulation() {
+    public Integer getPopulation() {
         return population;
     }
 
     /**
      * @param population population à affecter à la ville
      */
-    public void setPopulation(Double population) {
+    public void setPopulation(Integer population) {
         this.population = population;
     }
 

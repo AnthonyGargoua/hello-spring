@@ -86,6 +86,40 @@ public class VilleDao {
         return query.getResultList();
     }
 
+    // Extrait les n villes les plus peuplées d'un département donné, triées par population décroissante
+    /**
+     * Extrait les n villes les plus peuplées d'un département donné.
+     *
+     * @param idDepartement identifiant du département
+     * @param n nombre de villes à renvoyer
+     * @return la liste des n villes les plus peuplées du département
+     */
+    public List<Ville> extractTopNByDepartement(int idDepartement, int n){
+        TypedQuery<Ville> query = entityManager.createQuery(
+                "SELECT v FROM Ville v WHERE v.departement.id = :idDepartement ORDER BY v.population DESC", Ville.class);
+        query.setParameter("idDepartement", idDepartement);
+        query.setMaxResults(n);
+        return query.getResultList();
+    }
+
+    // Extrait les villes d'un département donné dont la population est comprise entre min et max
+    /**
+     * Extrait les villes d'un département donné dont la population est comprise entre deux valeurs données.
+     *
+     * @param idDepartement identifiant du département
+     * @param min population minimale
+     * @param max population maximale
+     * @return la liste des villes correspondantes
+     */
+    public List<Ville> extractByDepartementAndMinMax(int idDepartement, int min, int max){
+        TypedQuery<Ville> query = entityManager.createQuery(
+                "SELECT v FROM Ville v WHERE v.departement.id = :idDepartement AND v.population BETWEEN :min AND :max", Ville.class);
+        query.setParameter("idDepartement", idDepartement);
+        query.setParameter("min", min);
+        query.setParameter("max", max);
+        return query.getResultList();
+    }
+
     //  Insère une nouvelle ville en base et retourne la liste des villes après insertion
     /**
      * Insère une nouvelle ville en base.
