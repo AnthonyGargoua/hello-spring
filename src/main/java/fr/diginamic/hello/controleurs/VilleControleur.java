@@ -5,6 +5,7 @@ import fr.diginamic.hello.entities.Ville;
 import fr.diginamic.hello.exceptions.VilleException;
 import fr.diginamic.hello.mappers.VilleMapper;
 import fr.diginamic.hello.services.VilleService;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -35,10 +36,10 @@ public class VilleControleur implements VilleControleursDocs {
     }
 
     @Override
-    public List<VilleDto> getVilles(){
+    public Page<VilleDto> getVilles(int page, int size){
         // Ici, je récupère toutes les Ville du service, puis je convertis chacune en VilleDto avec le stream
-        List<Ville> villes = villeService.extractVilles();
-        return villes.stream().map(villeMappers::toDto).toList();
+        Page<Ville> villes = villeService.extractVillesPaginees(page, size);
+        return villes.map(villeMappers::toDto);
     }
 
     @Override
@@ -51,6 +52,17 @@ public class VilleControleur implements VilleControleursDocs {
 
         // Ici, je convertis la Ville trouvée en VilleDto avant de la renvoyer
         return ResponseEntity.ok(villeMappers.toDto(ville));
+    }
+
+    @Override
+    public ResponseEntity<List<VilleDto>> rechercherParDepartementEtPopulationMin(int idDepartement, Integer min) throws VilleException{
+        List<Ville> resultat = villeService.extractVillesParDepartementEtMin(idDepartement, min);
+
+        if(resultat.isEmpty()){
+            throw new VilleException("Aucune ville n'a une population supérieur à " + min + " dans le département " + idDepartement);
+        }
+        // Ici, je convertis la Ville trouvée en VilleDto avant de la renvoyer
+        return ResponseEntity.ok(resultat.stream().map(villeMappers::toDto).toList());
     }
 
     @Override

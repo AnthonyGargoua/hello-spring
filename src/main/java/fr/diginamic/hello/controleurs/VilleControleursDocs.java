@@ -10,6 +10,7 @@ import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
@@ -23,19 +24,24 @@ import java.util.List;
 public interface VilleControleursDocs {
 
     /**
-     * Récupère la liste de toutes les villes.
+     * Récupère la liste de toutes les villes, de façon paginée.
      *
-     * @return la liste de toutes les villes
+     * @param page numéro de la page souhaitée (la première page est 0)
+     * @param size nombre de villes par page
+     * @return la page de villes correspondante
      */
     @Operation(summary = "Récupérer la liste de toutes les villes")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Liste des villes renvoyée avec succès",
+            @ApiResponse(responseCode = "200", description = "Page de villes renvoyée avec succès",
                     content = @Content(array = @ArraySchema(schema = @Schema(implementation = VilleDto.class))))
     })
     @GetMapping
-    List<VilleDto> getVilles();
+    Page<VilleDto> getVilles(
+            @Parameter(description = "Numéro de la page souhaitée (la première page est 0)", example = "0", required = true)
+            @RequestParam int page,
+            @Parameter(description = "Nombre de villes par page", example = "20", required = true)
+            @RequestParam int size);
 
-    // @PathVariable, récupère la valeur présente dans l'URL (ex: /ville/3 -> id = 3)
     /**
      * Récupère une ville à partir de son identifiant.
      *
@@ -53,9 +59,6 @@ public interface VilleControleursDocs {
             @Parameter(description = "Identifiant de la ville", example = "1", required = true)
             @PathVariable int id);
 
-    // Ici le VilleExceptionHandler permet d'intercepter l'exception automatiquement
-    // @Valid déclenche automatiquement le contrôle des annotations posées sur VilleDto (@NotNull, @Size, @Min...)
-    // Si un contrôle échoue, Spring lève lui-même une MethodArgumentNotValidException, qu'on va récupérer dans le ControllerAdvice
     /**
      * Ajoute une nouvelle ville.
      *
@@ -71,9 +74,6 @@ public interface VilleControleursDocs {
     @PostMapping
     ResponseEntity<String> insertVille(@Valid @RequestBody VilleDto nouvelleVilleDto) throws VilleException;
 
-    // @RequestBody, Spring convertit automatiquement le JSON envoyé dans le corps de la requête en objet VilleDto, avec les nouvelles valeurs à appliquer
-    // Même contrôle Bean Validation que sur le POST : @Valid ici aussi déclenche la vérification, et c'est le même ExceptionHandler (défini une seule fois)
-    // qui va intercepter l'erreur
     /**
      * Modifie une ville existante.
      *
@@ -94,7 +94,6 @@ public interface VilleControleursDocs {
             @PathVariable int id,
             @Valid @RequestBody VilleDto villeModifieeDto) throws VilleException;
 
-    // Même logique de recherche par id que pour le GET et le PUT, mais ici on supprime la ville trouvée au lieu de la lire ou la modifier.
     /**
      * Supprime une ville à partir de son identifiant.
      *
@@ -112,8 +111,6 @@ public interface VilleControleursDocs {
             @Parameter(description = "Identifiant de la ville à supprimer", example = "1", required = true)
             @PathVariable int id) throws VilleException;
 
-    // @RequestParam permet de récupérer une valeur dans les paramètres de l'url après le ?
-    // Par exemple : /ville/recherche/nom?nom=Bor -> nom = "Bor"
     /**
      * Recherche les villes dont le nom commence par une chaîne donnée.
      *
@@ -132,7 +129,6 @@ public interface VilleControleursDocs {
             @Parameter(description = "Début du nom recherché", example = "Pa", required = true)
             @RequestParam String nom) throws VilleException;
 
-    // Même principe que rechercherParNom, mais on filtre sur la population plutôt que sur le nom
     /**
      * Recherche les villes dont la population dépasse un minimum donné.
      *
@@ -148,10 +144,30 @@ public interface VilleControleursDocs {
     })
     @GetMapping("/recherche/population-min")
     ResponseEntity<List<VilleDto>> rechercherParPopulationMin(
-            @Parameter(description = "Population minimale", example = "100000", required = true)
+            @Parameter(description = "Population minimale", example = "10000", required = true)
             @RequestParam Integer min) throws VilleException;
 
-    // Même logique, mais avec deux paramètres (min et max) pour filtrer une fourchette de population
+    /**
+     * Recherche les villes d'un département dont la population dépasse un minimum donné.
+     *
+     * @param idDepartement identifiant du département
+     * @param min population minimale
+     * @return la liste des villes correspondantes
+     * @throws VilleException si aucune ville ne correspond
+     */
+    @Operation(summary = "Rechercher les villes d'un département dont la population dépasse un minimum")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Liste des villes correspondantes",
+                    content = @Content(array = @ArraySchema(schema = @Schema(implementation = VilleDto.class)))),
+            @ApiResponse(responseCode = "400", description = "Aucune ville trouvée")
+    })
+    @GetMapping("/departement/{idDepartement}/population-min")
+    ResponseEntity<List<VilleDto>> rechercherParDepartementEtPopulationMin(
+            @Parameter(description = "Identifiant du département", example = "1", required = true)
+            @PathVariable int idDepartement,
+            @Parameter(description = "Population minimale", example = "10000", required = true)
+            @RequestParam Integer min) throws VilleException;
+
     /**
      * Recherche les villes dont la population est comprise entre deux valeurs données.
      *
@@ -173,7 +189,6 @@ public interface VilleControleursDocs {
             @Parameter(description = "Population maximale", example = "1000000", required = true)
             @RequestParam Integer max) throws VilleException;
 
-    // @PathVariable pour idDepartement et n (ils font partie de l'URL), @RequestParam pour min/max (après le ?), comme sur les autres recherches
     /**
      * Recherche les n villes les plus peuplées d'un département donné.
      *

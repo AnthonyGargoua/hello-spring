@@ -1,45 +1,44 @@
 package fr.diginamic.hello.services;
 
-import fr.diginamic.hello.dao.DepartementDao;
-import fr.diginamic.hello.dao.VilleDao;
 import fr.diginamic.hello.entities.Departement;
 import fr.diginamic.hello.entities.Ville;
 import fr.diginamic.hello.exceptions.VilleException;
+import fr.diginamic.hello.repositories.DepartementRepository;
+import fr.diginamic.hello.repositories.VilleRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 
-// @Service, signale à Spring que cette classe est la couche métier (contrôles + orchestration), gérée comme un bean au même titre que @Repository ou @RestController
 /**
- * Couche métier pour la gestion des villes.
+ * Service métier pour l'entité {@link Ville}.
  * <p>
- * Applique les contrôles métier (validation, unicité du nom) avant de déléguer les accès aux données à {@link VilleDao}.
+ * Regroupe les contrôles de validation, la résolution du département associé,
+ * et l'orchestration des appels à {@link VilleRepository}.
  */
 @Service
 public class VilleService {
-    private final VilleDao villeDao;
-    private final DepartementDao departementDao;
+    private final VilleRepository villeRepository;
+    private final DepartementRepository departementRepository;
 
-
-    // Constructeur
     /**
-     * Crée le service en lui injectant la DAO des villes et celle des départements.
+     * Construit le service à partir de ses dépendances.
      *
-     * @param villeDao DAO utilisée pour accéder aux données des villes
-     * @param departementDao DAO utilisée pour accéder aux données des départements
+     * @param villeRepository repository Spring Data JPA pour l'entité Ville
+     * @param departementRepository repository Spring Data JPA pour l'entité Departement
      */
-    public VilleService(VilleDao villeDao, DepartementDao departementDao) {
-        this.villeDao = villeDao;
-        this.departementDao = departementDao;
+    public VilleService(VilleRepository villeRepository, DepartementRepository departementRepository) {
+        this.villeRepository = villeRepository;
+        this.departementRepository = departementRepository;
     }
 
-    // Je regroupe les contrôles métier communs à l'ajout et la modification (nom, population)
     /**
-     * Vérifie que les données d'une ville respectent les règles métier (nom et population).
+     * Vérifie qu'une ville respecte les règles métier (population et nom).
      *
      * @param ville ville à valider
-     * @throws VilleException si le nom ou la population ne respecte pas les règles métier
+     * @throws VilleException si la population est absente/inférieure à 10, ou si le nom est absent/trop court
      */
     private void validerVille (Ville ville) throws VilleException {
         if(ville.getPopulation() == null || ville.getPopulation() < 10){
@@ -50,19 +49,16 @@ public class VilleService {
         }
     }
 
-    // Ici, je détermine le département à rattacher à une ville, à partir de son code et/ou de son id
-    // Priorité à l'id s'il est fourni ; s'il ne correspond à rien, je retente avec le code ; si le code ne correspond à rien non plus, je crée le département
-    // Si aucun des deux n'est fourni, ou si seul l'id est fourni sans correspondre à rien, j'échoue avec une exception
     /**
-     * Résout le département à associer à une ville, à partir d'un code et/ou d'un identifiant de département.
+     * Résout le département à rattacher à une ville à partir de son code et/ou de son id.
      * <p>
-     * Si l'identifiant est fourni et correspond à un département existant, celui-ci est utilisé.
-     * Sinon, si le code est fourni, le département correspondant est recherché, et créé automatiquement s'il n'existe pas encore.
+     * Priorité à l'id s'il est fourni ; s'il ne correspond à rien, retente avec le code ;
+     * si le code ne correspond à rien non plus, crée le département.
      *
      * @param codeDepartement code du département (peut être {@code null})
      * @param idDepartement identifiant du département (peut être {@code null})
-     * @return le département trouvé ou créé
-     * @throws VilleException si aucun des deux n'est fourni, ou si l'id fourni ne correspond à aucun département et qu'aucun code n'est fourni
+     * @return le département résolu (existant ou nouvellement créé)
+     * @throws VilleException si ni le code ni l'id ne sont fournis, ou si aucun département ne peut être résolu
      */
     private Departement resolverDepartement(String codeDepartement, Integer idDepartement) throws VilleException {
         if (codeDepartement == null && idDepartement == null){
@@ -72,15 +68,15 @@ public class VilleService {
         Departement departement = null;
 
         if (idDepartement != null){
-            departement = departementDao.extractById(idDepartement);
+            departement = departementRepository.findById(idDepartement).orElse(null);
         }
 
         if (departement == null && codeDepartement != null){
-            departement = departementDao.extractByCode(codeDepartement);
+            departement = departementRepository.findByCode(codeDepartement);
             if (departement == null){
                 departement = new Departement();
                 departement.setCode(codeDepartement);
-                departementDao.insert(departement);
+                departementRepository.save(departement);
             }
         }
 
@@ -91,90 +87,112 @@ public class VilleService {
         return departement;
     }
 
-    // Méthodes d'extraction, je délègue directement à la DAO, aucun contrôle métier nécessaire ici (simple lecture)
     /**
-     * Récupère toutes les villes.
+     * Récupère les villes de façon paginée.
      *
-     * @return la liste de toutes les villes
+     * @param page numéro de la page souhaitée (0 = première page)
+     * @param size nombre de villes par page
+     * @return la page de villes correspondante
      */
-    public List<Ville> extractVilles(){
-        return villeDao.extractAll();
+    public Page<Ville> extractVillesPaginees(int page, int size){
+        return villeRepository.findAll(PageRequest.of(page, size));
     }
 
     /**
-     * Récupère une ville par son identifiant.
+     * Récupère une ville à partir de son identifiant.
      *
      * @param idVille identifiant de la ville recherchée
-     * @return la ville correspondante, ou {@code null} si aucune ville ne correspond à cet id
+     * @return la ville trouvée, ou {@code null} si aucune ville ne correspond
      */
     public Ville extractVille(int idVille){
-        return villeDao.extractById(idVille);
+        return villeRepository.findById(idVille).orElse(null);
     }
 
     /**
-     * Récupère les villes dont le nom commence par le suffixe donné.
+     * Recherche les villes dont le nom commence par la chaîne donnée.
      *
-     * @param suffixe début du nom recherché
+     * @param prefixe début du nom recherché
      * @return la liste des villes correspondantes
      */
-    public List<Ville> extractVilles(String suffixe){
-        return villeDao.extractBySuffixe(suffixe);
+    public List<Ville> extractVilles(String prefixe){
+        return villeRepository.findByNomStartingWith(prefixe);
     }
 
     /**
-     * Récupère les villes dont la population dépasse un minimum donné.
+     * Recherche les villes dont la population dépasse un minimum donné, triées par population décroissante.
      *
-     * @param min population minimale
+     * @param min population minimale (exclusive)
      * @return la liste des villes correspondantes
      */
     public List<Ville> extractVilles(int min){
-        return villeDao.extractByMin(min);
+        return villeRepository.findByPopulationGreaterThanOrderByPopulationDesc(min);
     }
 
     /**
-     * Récupère les villes dont la population est comprise entre deux valeurs données.
+     * Recherche les villes dont la population est comprise entre min et max, triées par population décroissante.
      *
-     * @param min population minimale
-     * @param max population maximale
+     * @param min population minimale (exclusive)
+     * @param max population maximale (exclusive)
      * @return la liste des villes correspondantes
      */
     public List<Ville> extractVilles(int min, int max){
-        return villeDao.extractByMinMax(min, max);
+        return villeRepository.findByPopulationGreaterThanAndPopulationLessThanOrderByPopulationDesc(min, max);
     }
 
     /**
-     * Récupère les n villes les plus peuplées d'un département donné.
+     * Recherche les villes d'un département dont la population dépasse un minimum donné, triées par population décroissante.
+     *
+     * @param idDepartement identifiant du département
+     * @param min population minimale (exclusive)
+     * @return la liste des villes correspondantes, ou une liste vide si le département n'existe pas
+     */
+    public List<Ville> extractVillesParDepartementEtMin(int idDepartement, int min){
+        Departement departement = departementRepository.findById(idDepartement).orElse(null);
+        if (departement == null){
+            return List.of();
+        }
+        return villeRepository.findByDepartementAndPopulationGreaterThanOrderByPopulationDesc(departement, min);
+    }
+
+    /**
+     * Recherche les n villes les plus peuplées d'un département donné.
      *
      * @param idDepartement identifiant du département
      * @param n nombre de villes à renvoyer
-     * @return la liste des n villes les plus peuplées du département
+     * @return la liste des n villes les plus peuplées du département, ou une liste vide si le département n'existe pas
      */
     public List<Ville> extractTopNVillesParDepartement(int idDepartement, int n){
-        return villeDao.extractTopNByDepartement(idDepartement, n);
+        Departement departement = departementRepository.findById(idDepartement).orElse(null);
+        if (departement == null){
+            return List.of();
+        }
+        return villeRepository.findByDepartementOrderByPopulationDesc(departement, PageRequest.of(0, n));
     }
 
     /**
-     * Récupère les villes d'un département donné dont la population est comprise entre deux valeurs données.
+     * Recherche les villes d'un département dont la population est comprise entre min et max, triées par population décroissante.
      *
      * @param idDepartement identifiant du département
-     * @param min population minimale
-     * @param max population maximale
-     * @return la liste des villes correspondantes
+     * @param min population minimale (exclusive)
+     * @param max population maximale (exclusive)
+     * @return la liste des villes correspondantes, ou une liste vide si le département n'existe pas
      */
     public List<Ville> extractVillesParDepartementEtMinMax(int idDepartement, int min, int max){
-        return villeDao.extractByDepartementAndMinMax(idDepartement, min, max);
+        Departement departement = departementRepository.findById(idDepartement).orElse(null);
+        if (departement == null){
+            return List.of();
+        }
+        return villeRepository.findByDepartementAndPopulationGreaterThanAndPopulationLessThanOrderByPopulationDesc(departement, min, max);
     }
 
-    // @Transactional, si une étape échoue (doublon détecté, département inconnu), rien n'est écrit en base
-    // Je résous d'abord le département (trouvé ou créé), je le rattache à la ville, puis je valide le format et l'unicité du nom avant d'insérer
     /**
-     * Résout le département associé, valide puis insère une nouvelle ville, après avoir vérifié qu'aucune ville existante ne porte déjà ce nom.
+     * Ajoute une nouvelle ville, en résolvant d'abord son département (trouvé ou créé).
      *
-     * @param ville ville à insérer
-     * @param codeDepartement code du département à associer (peut être {@code null} si idDepartement est fourni)
-     * @param idDepartement identifiant du département à associer (peut être {@code null} si codeDepartement est fourni)
+     * @param ville ville à créer
+     * @param codeDepartement code du département à rattacher (peut être {@code null})
+     * @param idDepartement identifiant du département à rattacher (peut être {@code null})
      * @return la liste de toutes les villes après insertion
-     * @throws VilleException si la ville est invalide, si le département est inconnu, ou si une ville du même nom existe déjà
+     * @throws VilleException si le département ne peut pas être résolu, si la ville est invalide, ou si son nom existe déjà
      */
     @Transactional
     public List<Ville> insertVille(Ville ville, String codeDepartement, Integer idDepartement) throws VilleException{
@@ -183,40 +201,36 @@ public class VilleService {
 
         validerVille(ville);
 
-        List<Ville> villes = villeDao.extractAll();
-        boolean existeDeja = villes.stream().anyMatch(v -> v.getNom().equals(ville.getNom()));
-        if (existeDeja){
+        if (villeRepository.existsByNom(ville.getNom())){
             throw new VilleException("Une ville avec ce nom existe déjà");
         }
-        villeDao.insert(ville);
-        return villeDao.extractAll();
+        villeRepository.save(ville);
+        return villeRepository.findAll();
     }
 
-    // Je récupère la ville existante par son id, je vérifie qu'elle existe, puis je modifie ses champs avant de sauvegarder
     /**
-     * Valide puis met à jour une ville existante.
+     * Modifie une ville existante (nom et population).
      *
      * @param idVille identifiant de la ville à modifier
      * @param villeModifiee ville portant les nouvelles données
      * @return la liste de toutes les villes après modification
-     * @throws VilleException si la ville est invalide ou si aucune ville ne correspond à l'id
+     * @throws VilleException si les nouvelles données sont invalides ou si aucune ville ne correspond à l'id
      */
     @Transactional
     public List<Ville> updateVille(int idVille, Ville villeModifiee) throws VilleException{
         validerVille(villeModifiee);
-        Ville villeExistante = villeDao.extractById(idVille);
+        Ville villeExistante = villeRepository.findById(idVille).orElse(null);
         if (villeExistante == null){
             throw new VilleException("Aucune ville trouvée pour l'id " + idVille);
         }
         villeExistante.setNom(villeModifiee.getNom());
         villeExistante.setPopulation(villeModifiee.getPopulation());
-        villeDao.update(villeExistante);
-        return villeDao.extractAll();
+        villeRepository.save(villeExistante);
+        return villeRepository.findAll();
     }
 
-    // Je récupère la ville existante par son id, je vérifie qu'elle existe, puis je la supprime
     /**
-     * Supprime une ville existante.
+     * Supprime une ville à partir de son identifiant.
      *
      * @param idVille identifiant de la ville à supprimer
      * @return la liste de toutes les villes après suppression
@@ -224,11 +238,11 @@ public class VilleService {
      */
     @Transactional
     public List<Ville> removeVille(int idVille) throws VilleException{
-        Ville villeExistante = villeDao.extractById(idVille);
+        Ville villeExistante = villeRepository.findById(idVille).orElse(null);
         if (villeExistante == null){
             throw new VilleException("Aucune ville trouvée pour l'id " + idVille);
         }
-        villeDao.remove(villeExistante);
-        return villeDao.extractAll();
+        villeRepository.delete(villeExistante);
+        return villeRepository.findAll();
     }
 }

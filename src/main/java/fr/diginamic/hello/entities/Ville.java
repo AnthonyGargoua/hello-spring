@@ -26,9 +26,11 @@ public class Ville {
     private String nom;
     /** Population de la ville (doit être supérieure ou égale à 1). */
     @Min(1)
+    @Column(name = "nb_habs")
     private Integer population;
     /** Département auquel appartient la ville. */
     @ManyToOne
+    @JoinColumn(name = "id_dept")
     private Departement departement;
 
     // Constructeur vide
