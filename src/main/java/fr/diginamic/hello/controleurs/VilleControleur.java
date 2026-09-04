@@ -3,13 +3,18 @@ package fr.diginamic.hello.controleurs;
 import fr.diginamic.hello.dto.VilleDto;
 import fr.diginamic.hello.entities.Ville;
 import fr.diginamic.hello.exceptions.VilleException;
+import fr.diginamic.hello.export.VilleCsvExporter;
 import fr.diginamic.hello.mappers.VilleMapper;
 import fr.diginamic.hello.services.VilleService;
 import org.springframework.data.domain.Page;
+import org.springframework.http.ContentDisposition;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
+import java.nio.charset.StandardCharsets;
 import java.util.List;
 
 /**
@@ -23,16 +28,19 @@ public class VilleControleur implements VilleControleursDocs {
 
     private final VilleService villeService;
     private final VilleMapper villeMappers;
+    private final VilleCsvExporter villeCsvExporter;
 
     /**
-     * Crée le contrôleur en lui injectant le service métier des villes et le mapper.
+     * Crée le contrôleur en lui injectant le service métier des villes, le mapper et l'exporteur CSV.
      *
      * @param villeService service utilisé pour gérer les villes
      * @param villeMappers mapper utilisé pour convertir entre Ville et VilleDto
+     * @param villeCsvExporter composant utilisé pour générer le fichier CSV d'export
      */
-    public VilleControleur(VilleService villeService, VilleMapper villeMappers){
+    public VilleControleur(VilleService villeService, VilleMapper villeMappers, VilleCsvExporter villeCsvExporter){
         this.villeService = villeService;
         this.villeMappers = villeMappers;
+        this.villeCsvExporter = villeCsvExporter;
     }
 
     @Override
@@ -136,5 +144,24 @@ public class VilleControleur implements VilleControleursDocs {
             throw new VilleException("Aucune ville n'a une population comprise entre " + min + " et " + max + " dans le département " + idDepartement);
         }
         return ResponseEntity.ok(resultat.stream().map(villeMappers::toDto).toList());
+    }
+
+    @Override
+    public ResponseEntity<byte[]> exporterVillesCsv(Integer min) throws VilleException{
+        List<Ville> villes = villeService.extractVilles(min);
+
+        if(villes.isEmpty()){
+            throw new VilleException("Aucune ville n'a une population supérieure à " + min);
+        }
+
+        byte[] contenu = villeCsvExporter.genererCsv(villes);
+
+        HttpHeaders headers = new HttpHeaders();
+        headers.setContentType(MediaType.parseMediaType("text/csv"));
+        headers.setContentDisposition(ContentDisposition.attachment()
+                .filename("villes_population_min_" + min + ".csv", StandardCharsets.UTF_8)
+                .build());
+
+        return ResponseEntity.ok().headers(headers).body(contenu);
     }
 }

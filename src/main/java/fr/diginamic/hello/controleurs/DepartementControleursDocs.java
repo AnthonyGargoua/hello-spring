@@ -108,4 +108,22 @@ public interface DepartementControleursDocs {
     ResponseEntity<String> removeDepartement(
             @Parameter(description = "Identifiant du département à supprimer", example = "1", required = true)
             @PathVariable int id) throws VilleException;
+
+    /**
+     * Exporte en PDF la fiche d'un département (code, nom et villes rattachées).
+     *
+     * @param code code du département à exporter
+     * @return le fichier PDF correspondant, à télécharger
+     * @throws VilleException si aucun département ne correspond au code
+     */
+    @Operation(summary = "Exporter en PDF la fiche d'un département et de ses villes")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Fichier PDF généré avec succès",
+                    content = @Content(mediaType = "application/pdf")),
+            @ApiResponse(responseCode = "400", description = "Aucun département trouvé pour ce code")
+    })
+    @GetMapping(value = "/{code}/export", produces = "application/pdf")
+    ResponseEntity<byte[]> exporterDepartementPdf(
+            @Parameter(description = "Code du département", example = "75", required = true)
+            @PathVariable String code) throws VilleException;
 }

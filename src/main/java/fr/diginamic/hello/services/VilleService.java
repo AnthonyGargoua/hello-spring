@@ -7,6 +7,7 @@ import fr.diginamic.hello.repositories.DepartementRepository;
 import fr.diginamic.hello.repositories.VilleRepository;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -183,6 +184,16 @@ public class VilleService {
             return List.of();
         }
         return villeRepository.findByDepartementAndPopulationGreaterThanAndPopulationLessThanOrderByPopulationDesc(departement, min, max);
+    }
+
+    /**
+     * Recherche toutes les villes d'un département, triées par population décroissante.
+     *
+     * @param departement département concerné
+     * @return la liste des villes du département
+     */
+    public List<Ville> extractVillesParDepartement(Departement departement){
+        return villeRepository.findByDepartementOrderByPopulationDesc(departement, Pageable.unpaged());
     }
 
     /**

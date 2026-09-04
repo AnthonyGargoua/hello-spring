@@ -233,4 +233,22 @@ public interface VilleControleursDocs {
             @RequestParam Integer min,
             @Parameter(description = "Population maximale", example = "1000000", required = true)
             @RequestParam Integer max) throws VilleException;
+
+    /**
+     * Exporte au format CSV les villes dont la population dépasse un minimum donné.
+     *
+     * @param min population minimale (exclusive)
+     * @return le fichier CSV correspondant, à télécharger
+     * @throws VilleException si aucune ville ne correspond
+     */
+    @Operation(summary = "Exporter au format CSV les villes dont la population dépasse un minimum")
+    @ApiResponses({
+            @ApiResponse(responseCode = "200", description = "Fichier CSV généré avec succès",
+                    content = @Content(mediaType = "text/csv")),
+            @ApiResponse(responseCode = "400", description = "Aucune ville trouvée")
+    })
+    @GetMapping(value = "/export", produces = "text/csv")
+    ResponseEntity<byte[]> exporterVillesCsv(
+            @Parameter(description = "Population minimale", example = "10000", required = true)
+            @RequestParam Integer min) throws VilleException;
 }
