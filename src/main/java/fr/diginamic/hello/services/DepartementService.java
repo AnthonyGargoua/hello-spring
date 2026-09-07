@@ -1,10 +1,14 @@
 package fr.diginamic.hello.services;
 
+import fr.diginamic.hello.dto.DepartementApiDto;
 import fr.diginamic.hello.entities.Departement;
 import fr.diginamic.hello.exceptions.VilleException;
 import fr.diginamic.hello.repositories.DepartementRepository;
+import jakarta.annotation.PostConstruct;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.client.RestTemplate;
 
 import java.util.List;
 
@@ -115,5 +119,36 @@ public class DepartementService {
             throw new VilleException("Le departement n'existe pas");
         }
         departementRepository.delete(existant);
+    }
+
+    @Value("${application.init}")
+    private boolean applicationInit;
+
+    /**
+     * Initialise les noms des départements en base à partir de l'API externe https://geo.api.gouv.fr/departements.
+     * <p>
+     * Exécutée automatiquement au démarrage de l'application, juste après l'injection des dépendances.
+     * Ne fait rien si la propriété application.init vaut false.
+     */
+    @PostConstruct
+    public void initData(){
+        if (!applicationInit){
+            return;
+        }
+
+        RestTemplate restTemplate = new RestTemplate();
+        DepartementApiDto[] departementsApi = restTemplate.getForObject("https://geo.api.gouv.fr/departements", DepartementApiDto[].class);
+
+        if (departementsApi == null){
+            return;
+        }
+
+        for (DepartementApiDto departementApi : departementsApi){
+            Departement departement = departementRepository.findByCode(departementApi.getCode());
+            if (departement != null){
+                departement.setNom(departementApi.getNom());
+                departementRepository.save(departement);
+            }
+        }
     }
 }
