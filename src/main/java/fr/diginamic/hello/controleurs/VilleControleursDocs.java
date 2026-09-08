@@ -9,17 +9,16 @@ import io.swagger.v3.oas.annotations.media.Content;
 import io.swagger.v3.oas.annotations.media.Schema;
 import io.swagger.v3.oas.annotations.responses.ApiResponse;
 import io.swagger.v3.oas.annotations.responses.ApiResponses;
-import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 /**
  * Interface exposant la documentation Swagger des opérations CRUD et de recherche sur les villes.
  * <p>
- * Les annotations Swagger et de mapping vivent ici, VilleControleur ne fait qu'implémenter la logique.
+ * Seules les annotations Swagger vivent ici : les mappings HTTP et le binding des paramètres
+ * sont portés par {@link VilleControleur}.
  */
 public interface VilleControleursDocs {
 
@@ -35,12 +34,11 @@ public interface VilleControleursDocs {
             @ApiResponse(responseCode = "200", description = "Page de villes renvoyée avec succès",
                     content = @Content(array = @ArraySchema(schema = @Schema(implementation = VilleDto.class))))
     })
-    @GetMapping
     Page<VilleDto> getVilles(
-            @Parameter(description = "Numéro de la page souhaitée (la première page est 0)", example = "0", required = true)
-            @RequestParam int page,
-            @Parameter(description = "Nombre de villes par page", example = "20", required = true)
-            @RequestParam int size);
+            @Parameter(description = "Numéro de la page souhaitée (la première page est 0)", example = "0")
+            int page,
+            @Parameter(description = "Nombre de villes par page", example = "20")
+            int size);
 
     /**
      * Récupère une ville à partir de son identifiant.
@@ -54,10 +52,9 @@ public interface VilleControleursDocs {
                     content = @Content(schema = @Schema(implementation = VilleDto.class))),
             @ApiResponse(responseCode = "404", description = "Aucune ville trouvée pour cet id")
     })
-    @GetMapping("/{id}")
     ResponseEntity<VilleDto> getVilleParId(
             @Parameter(description = "Identifiant de la ville", example = "1", required = true)
-            @PathVariable int id);
+            int id);
 
     /**
      * Ajoute une nouvelle ville.
@@ -71,8 +68,7 @@ public interface VilleControleursDocs {
             @ApiResponse(responseCode = "200", description = "Ville insérée avec succès"),
             @ApiResponse(responseCode = "400", description = "Ville invalide ou déjà existante")
     })
-    @PostMapping
-    ResponseEntity<String> insertVille(@Valid @RequestBody VilleDto nouvelleVilleDto) throws VilleException;
+    ResponseEntity<String> insertVille(VilleDto nouvelleVilleDto) throws VilleException;
 
     /**
      * Modifie une ville existante.
@@ -88,11 +84,10 @@ public interface VilleControleursDocs {
             @ApiResponse(responseCode = "404", description = "Aucune ville trouvée pour cet id"),
             @ApiResponse(responseCode = "400", description = "Données invalides")
     })
-    @PutMapping("/{id}")
     ResponseEntity<String> updateVille(
             @Parameter(description = "Identifiant de la ville à modifier", example = "1", required = true)
-            @PathVariable int id,
-            @Valid @RequestBody VilleDto villeModifieeDto) throws VilleException;
+            int id,
+            VilleDto villeModifieeDto) throws VilleException;
 
     /**
      * Supprime une ville à partir de son identifiant.
@@ -106,28 +101,26 @@ public interface VilleControleursDocs {
             @ApiResponse(responseCode = "200", description = "Ville supprimée avec succès"),
             @ApiResponse(responseCode = "404", description = "Aucune ville trouvée pour cet id")
     })
-    @DeleteMapping("/{id}")
     ResponseEntity<String> removeVille(
             @Parameter(description = "Identifiant de la ville à supprimer", example = "1", required = true)
-            @PathVariable int id) throws VilleException;
+            int id) throws VilleException;
 
     /**
-     * Recherche les villes dont le nom commence par une chaîne donnée.
+     * Recherche une ville à partir de son nom exact.
      *
-     * @param nom début du nom recherché
-     * @return la liste des villes correspondantes
+     * @param nom nom de la ville recherchée
+     * @return la ville correspondante
      * @throws VilleException si aucune ville ne correspond
      */
-    @Operation(summary = "Rechercher des villes dont le nom commence par une chaîne donnée")
+    @Operation(summary = "Rechercher une ville par son nom")
     @ApiResponses({
-            @ApiResponse(responseCode = "200", description = "Liste des villes correspondantes",
-                    content = @Content(array = @ArraySchema(schema = @Schema(implementation = VilleDto.class)))),
+            @ApiResponse(responseCode = "200", description = "Ville trouvée",
+                    content = @Content(schema = @Schema(implementation = VilleDto.class))),
             @ApiResponse(responseCode = "400", description = "Aucune ville trouvée")
     })
-    @GetMapping("/recherche/nom")
-    ResponseEntity<List<VilleDto>> rechercherParNom(
-            @Parameter(description = "Début du nom recherché", example = "Pa", required = true)
-            @RequestParam String nom) throws VilleException;
+    ResponseEntity<VilleDto> rechercherParNom(
+            @Parameter(description = "Nom de la ville recherchée", example = "Paris", required = true)
+            String nom) throws VilleException;
 
     /**
      * Recherche les villes dont la population dépasse un minimum donné.
@@ -142,10 +135,9 @@ public interface VilleControleursDocs {
                     content = @Content(array = @ArraySchema(schema = @Schema(implementation = VilleDto.class)))),
             @ApiResponse(responseCode = "400", description = "Aucune ville trouvée")
     })
-    @GetMapping("/recherche/population-min")
     ResponseEntity<List<VilleDto>> rechercherParPopulationMin(
             @Parameter(description = "Population minimale", example = "10000", required = true)
-            @RequestParam Integer min) throws VilleException;
+            Integer min) throws VilleException;
 
     /**
      * Recherche les villes d'un département dont la population dépasse un minimum donné.
@@ -161,12 +153,11 @@ public interface VilleControleursDocs {
                     content = @Content(array = @ArraySchema(schema = @Schema(implementation = VilleDto.class)))),
             @ApiResponse(responseCode = "400", description = "Aucune ville trouvée")
     })
-    @GetMapping("/departement/{idDepartement}/population-min")
     ResponseEntity<List<VilleDto>> rechercherParDepartementEtPopulationMin(
             @Parameter(description = "Identifiant du département", example = "1", required = true)
-            @PathVariable int idDepartement,
+            int idDepartement,
             @Parameter(description = "Population minimale", example = "10000", required = true)
-            @RequestParam Integer min) throws VilleException;
+            Integer min) throws VilleException;
 
     /**
      * Recherche les villes dont la population est comprise entre deux valeurs données.
@@ -182,12 +173,11 @@ public interface VilleControleursDocs {
                     content = @Content(array = @ArraySchema(schema = @Schema(implementation = VilleDto.class)))),
             @ApiResponse(responseCode = "400", description = "Aucune ville trouvée")
     })
-    @GetMapping("/recherche/population-min-max")
     ResponseEntity<List<VilleDto>> rechercherParPopulationMinMax(
             @Parameter(description = "Population minimale", example = "100000", required = true)
-            @RequestParam Integer min,
+            Integer min,
             @Parameter(description = "Population maximale", example = "1000000", required = true)
-            @RequestParam Integer max) throws VilleException;
+            Integer max) throws VilleException;
 
     /**
      * Recherche les n villes les plus peuplées d'un département donné.
@@ -203,12 +193,11 @@ public interface VilleControleursDocs {
                     content = @Content(array = @ArraySchema(schema = @Schema(implementation = VilleDto.class)))),
             @ApiResponse(responseCode = "400", description = "Aucune ville trouvée")
     })
-    @GetMapping("/departement/{idDepartement}/top/{n}")
     ResponseEntity<List<VilleDto>> rechercherTopNParDepartement(
             @Parameter(description = "Identifiant du département", example = "1", required = true)
-            @PathVariable int idDepartement,
+            int idDepartement,
             @Parameter(description = "Nombre de villes à renvoyer", example = "5", required = true)
-            @PathVariable int n) throws VilleException;
+            int n) throws VilleException;
 
     /**
      * Recherche les villes d'un département dont la population est comprise entre deux valeurs données.
@@ -225,14 +214,13 @@ public interface VilleControleursDocs {
                     content = @Content(array = @ArraySchema(schema = @Schema(implementation = VilleDto.class)))),
             @ApiResponse(responseCode = "400", description = "Aucune ville trouvée")
     })
-    @GetMapping("/departement/{idDepartement}/population")
     ResponseEntity<List<VilleDto>> rechercherParDepartementEtPopulationMinMax(
             @Parameter(description = "Identifiant du département", example = "1", required = true)
-            @PathVariable int idDepartement,
+            int idDepartement,
             @Parameter(description = "Population minimale", example = "10000", required = true)
-            @RequestParam Integer min,
+            Integer min,
             @Parameter(description = "Population maximale", example = "1000000", required = true)
-            @RequestParam Integer max) throws VilleException;
+            Integer max) throws VilleException;
 
     /**
      * Exporte au format CSV les villes dont la population dépasse un minimum donné.
@@ -247,8 +235,7 @@ public interface VilleControleursDocs {
                     content = @Content(mediaType = "text/csv")),
             @ApiResponse(responseCode = "400", description = "Aucune ville trouvée")
     })
-    @GetMapping(value = "/export", produces = "text/csv")
     ResponseEntity<byte[]> exporterVillesCsv(
             @Parameter(description = "Population minimale", example = "10000", required = true)
-            @RequestParam Integer min) throws VilleException;
+            Integer min) throws VilleException;
 }

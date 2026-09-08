@@ -115,8 +115,18 @@ public class VilleService {
      * @param prefixe début du nom recherché
      * @return la liste des villes correspondantes
      */
-    public List<Ville> extractVilles(String prefixe){
+    public List<Ville> extractVillesParPrefixeNom(String prefixe){
         return villeRepository.findByNomStartingWith(prefixe);
+    }
+
+    /**
+     * Recherche une ville à partir de son nom exact.
+     *
+     * @param nom nom de la ville recherchée
+     * @return la ville trouvée, ou {@code null} si aucune ville ne correspond
+     */
+    public Ville extractVilleParNom(String nom){
+        return villeRepository.findByNom(nom);
     }
 
     /**
@@ -125,7 +135,7 @@ public class VilleService {
      * @param min population minimale (exclusive)
      * @return la liste des villes correspondantes
      */
-    public List<Ville> extractVilles(int min){
+    public List<Ville> extractVillesParPopulationMin(int min){
         return villeRepository.findByPopulationGreaterThanOrderByPopulationDesc(min);
     }
 
@@ -136,7 +146,7 @@ public class VilleService {
      * @param max population maximale (exclusive)
      * @return la liste des villes correspondantes
      */
-    public List<Ville> extractVilles(int min, int max){
+    public List<Ville> extractVillesParPopulationMinMax(int min, int max){
         return villeRepository.findByPopulationGreaterThanAndPopulationLessThanOrderByPopulationDesc(min, max);
     }
 

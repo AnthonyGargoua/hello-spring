@@ -6,11 +6,18 @@ import fr.diginamic.hello.exceptions.VilleException;
 import fr.diginamic.hello.export.VilleCsvExporter;
 import fr.diginamic.hello.mappers.VilleMapper;
 import fr.diginamic.hello.services.VilleService;
+import jakarta.validation.Valid;
 import org.springframework.data.domain.Page;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
@@ -45,6 +52,7 @@ public class VilleControleur implements VilleControleursDocs {
     }
 
     @Override
+    @GetMapping
     public Page<VilleDto> getVilles(@RequestParam(defaultValue="0")int page, @RequestParam(defaultValue = "20") int size){
         // Ici, je récupère toutes les Ville du service, puis je convertis chacune en VilleDto avec le stream
         Page<Ville> villes = villeService.extractVillesPaginees(page, size);
@@ -52,7 +60,8 @@ public class VilleControleur implements VilleControleursDocs {
     }
 
     @Override
-    public ResponseEntity<VilleDto> getVilleParId(int id){
+    @GetMapping("/{id}")
+    public ResponseEntity<VilleDto> getVilleParId(@PathVariable int id){
         Ville ville = villeService.extractVille(id);
 
         if(ville == null){
@@ -64,7 +73,8 @@ public class VilleControleur implements VilleControleursDocs {
     }
 
     @Override
-    public ResponseEntity<List<VilleDto>> rechercherParDepartementEtPopulationMin(int idDepartement, Integer min) throws VilleException{
+    @GetMapping("/departement/{idDepartement}/population-min")
+    public ResponseEntity<List<VilleDto>> rechercherParDepartementEtPopulationMin(@PathVariable int idDepartement, @RequestParam Integer min) throws VilleException{
         List<Ville> resultat = villeService.extractVillesParDepartementEtMin(idDepartement, min);
 
         if(resultat.isEmpty()){
@@ -75,7 +85,8 @@ public class VilleControleur implements VilleControleursDocs {
     }
 
     @Override
-    public ResponseEntity<String> insertVille(VilleDto nouvelleVilleDto) throws VilleException{
+    @PostMapping
+    public ResponseEntity<String> insertVille(@Valid @RequestBody VilleDto nouvelleVilleDto) throws VilleException{
         // Ici, je convertis le VilleDto reçu en Ville avant de le passer au service, qui continue de travailler avec l'entité
         Ville nouvelleVille = villeMappers.toBean(nouvelleVilleDto);
         // Ici, je transmets aussi le code et l'id département du DTO, pour que le service puisse résoudre (ou créer) le bon département
@@ -84,32 +95,36 @@ public class VilleControleur implements VilleControleursDocs {
     }
 
     @Override
-    public ResponseEntity<String> updateVille(int id, VilleDto villeModifieeDto) throws VilleException{
+    @PutMapping("/{id}")
+    public ResponseEntity<String> updateVille(@PathVariable int id, @Valid @RequestBody VilleDto villeModifieeDto) throws VilleException{
         Ville villeModifiee = villeMappers.toBean(villeModifieeDto);
         villeService.updateVille(id, villeModifiee);
         return ResponseEntity.ok("Ville modifiée avec succès");
     }
 
     @Override
-    public ResponseEntity<String> removeVille(int id) throws VilleException{
+    @DeleteMapping("/{id}")
+    public ResponseEntity<String> removeVille(@PathVariable int id) throws VilleException{
         villeService.removeVille(id);
         return ResponseEntity.ok("Ville supprimée avec succès");
     }
 
     @Override
-    public ResponseEntity<List<VilleDto>> rechercherParNom(String nom) throws VilleException{
-        List<Ville> resultat = villeService.extractVilles(nom);
+    @GetMapping("/recherche/nom/{nom}")
+    public ResponseEntity<VilleDto> rechercherParNom(@PathVariable String nom) throws VilleException{
+        Ville resultat = villeService.extractVilleParNom(nom);
 
-        if(resultat.isEmpty()){
-            throw new VilleException("Aucune ville dont le nom commence par " + nom + " n'a été trouvée");
+        if(resultat == null){
+            throw new VilleException("Aucune ville portant le nom " + nom + " n'a été trouvée");
         }
-        // Ici aussi, je convertis la liste de Ville en liste de VilleDto avec le stream avant de la renvoyer
-        return ResponseEntity.ok(resultat.stream().map(villeMappers::toDto).toList());
+        // Ici, je convertis la Ville trouvée en VilleDto avant de la renvoyer
+        return ResponseEntity.ok(villeMappers.toDto(resultat));
     }
 
     @Override
-    public ResponseEntity<List<VilleDto>> rechercherParPopulationMin(Integer min) throws VilleException{
-        List<Ville> resultat = villeService.extractVilles(min);
+    @GetMapping("/recherche/population-min/{min}")
+    public ResponseEntity<List<VilleDto>> rechercherParPopulationMin(@PathVariable Integer min) throws VilleException{
+        List<Ville> resultat = villeService.extractVillesParPopulationMin(min);
 
         if(resultat.isEmpty()){
             throw new VilleException("Aucune ville n'a une population supérieure à " + min);
@@ -118,8 +133,9 @@ public class VilleControleur implements VilleControleursDocs {
     }
 
     @Override
-    public ResponseEntity<List<VilleDto>> rechercherParPopulationMinMax(Integer min, Integer max) throws VilleException{
-        List<Ville> resultat = villeService.extractVilles(min, max);
+    @GetMapping("/recherche/population-min-max/{min}/{max}")
+    public ResponseEntity<List<VilleDto>> rechercherParPopulationMinMax(@PathVariable Integer min, @PathVariable Integer max) throws VilleException{
+        List<Ville> resultat = villeService.extractVillesParPopulationMinMax(min, max);
 
         if(resultat.isEmpty()){
             throw new VilleException("Aucune ville n'a une population comprise entre " + min + " et " + max);
@@ -128,7 +144,8 @@ public class VilleControleur implements VilleControleursDocs {
     }
 
     @Override
-    public ResponseEntity<List<VilleDto>> rechercherTopNParDepartement(int idDepartement, int n) throws VilleException{
+    @GetMapping("/departement/{idDepartement}/top/{n}")
+    public ResponseEntity<List<VilleDto>> rechercherTopNParDepartement(@PathVariable int idDepartement, @PathVariable int n) throws VilleException{
         List<Ville> resultat = villeService.extractTopNVillesParDepartement(idDepartement, n);
 
         if(resultat.isEmpty()){
@@ -138,7 +155,8 @@ public class VilleControleur implements VilleControleursDocs {
     }
 
     @Override
-    public ResponseEntity<List<VilleDto>> rechercherParDepartementEtPopulationMinMax(int idDepartement, Integer min, Integer max) throws VilleException{
+    @GetMapping("/departement/{idDepartement}/population")
+    public ResponseEntity<List<VilleDto>> rechercherParDepartementEtPopulationMinMax(@PathVariable int idDepartement, @RequestParam Integer min, @RequestParam Integer max) throws VilleException{
         List<Ville> resultat = villeService.extractVillesParDepartementEtMinMax(idDepartement, min, max);
 
         if(resultat.isEmpty()){
@@ -148,8 +166,9 @@ public class VilleControleur implements VilleControleursDocs {
     }
 
     @Override
-    public ResponseEntity<byte[]> exporterVillesCsv(Integer min) throws VilleException{
-        List<Ville> villes = villeService.extractVilles(min);
+    @GetMapping(value = "/export", produces = "text/csv")
+    public ResponseEntity<byte[]> exporterVillesCsv(@RequestParam Integer min) throws VilleException{
+        List<Ville> villes = villeService.extractVillesParPopulationMin(min);
 
         if(villes.isEmpty()){
             throw new VilleException("Aucune ville n'a une population supérieure à " + min);

@@ -32,6 +32,8 @@ public interface VilleRepository extends JpaRepository<Ville,Integer> {
      */
     boolean existsByNom(String nom);
 
+    Ville findByNom(String nom);
+
     // Recherche de toutes les villes dont la population est supérieure à min (paramètre de type int)
     // Les villes sont retournées par population descendante.
     /**
