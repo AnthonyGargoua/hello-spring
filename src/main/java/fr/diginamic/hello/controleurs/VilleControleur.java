@@ -12,6 +12,7 @@ import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.nio.charset.StandardCharsets;
@@ -44,7 +45,7 @@ public class VilleControleur implements VilleControleursDocs {
     }
 
     @Override
-    public Page<VilleDto> getVilles(int page, int size){
+    public Page<VilleDto> getVilles(@RequestParam(defaultValue="0")int page, @RequestParam(defaultValue = "20") int size){
         // Ici, je récupère toutes les Ville du service, puis je convertis chacune en VilleDto avec le stream
         Page<Ville> villes = villeService.extractVillesPaginees(page, size);
         return villes.map(villeMappers::toDto);
