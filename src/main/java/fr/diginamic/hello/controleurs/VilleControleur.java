@@ -12,6 +12,7 @@ import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.annotation.Secured;
 import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -52,6 +53,7 @@ public class VilleControleur implements VilleControleursDocs {
     }
 
     @Override
+    @Secured({"ROLE_USER", "ROLE_ADMIN"})
     @GetMapping
     public Page<VilleDto> getVilles(@RequestParam(defaultValue="0")int page, @RequestParam(defaultValue = "20") int size){
         // Ici, je récupère toutes les Ville du service, puis je convertis chacune en VilleDto avec le stream
@@ -60,6 +62,7 @@ public class VilleControleur implements VilleControleursDocs {
     }
 
     @Override
+    @Secured({"ROLE_USER", "ROLE_ADMIN"})
     @GetMapping("/{id}")
     public ResponseEntity<VilleDto> getVilleParId(@PathVariable int id){
         Ville ville = villeService.extractVille(id);
@@ -73,6 +76,7 @@ public class VilleControleur implements VilleControleursDocs {
     }
 
     @Override
+    @Secured({"ROLE_USER", "ROLE_ADMIN"})
     @GetMapping("/departement/{idDepartement}/population-min")
     public ResponseEntity<List<VilleDto>> rechercherParDepartementEtPopulationMin(@PathVariable int idDepartement, @RequestParam Integer min) throws VilleException{
         List<Ville> resultat = villeService.extractVillesParDepartementEtMin(idDepartement, min);
@@ -85,6 +89,7 @@ public class VilleControleur implements VilleControleursDocs {
     }
 
     @Override
+    @Secured("ROLE_ADMIN")
     @PostMapping
     public ResponseEntity<String> insertVille(@Valid @RequestBody VilleDto nouvelleVilleDto) throws VilleException{
         // Ici, je convertis le VilleDto reçu en Ville avant de le passer au service, qui continue de travailler avec l'entité
@@ -95,6 +100,7 @@ public class VilleControleur implements VilleControleursDocs {
     }
 
     @Override
+    @Secured("ROLE_ADMIN")
     @PutMapping("/{id}")
     public ResponseEntity<String> updateVille(@PathVariable int id, @Valid @RequestBody VilleDto villeModifieeDto) throws VilleException{
         Ville villeModifiee = villeMappers.toBean(villeModifieeDto);
@@ -103,6 +109,7 @@ public class VilleControleur implements VilleControleursDocs {
     }
 
     @Override
+    @Secured("ROLE_ADMIN")
     @DeleteMapping("/{id}")
     public ResponseEntity<String> removeVille(@PathVariable int id) throws VilleException{
         villeService.removeVille(id);
@@ -110,6 +117,7 @@ public class VilleControleur implements VilleControleursDocs {
     }
 
     @Override
+    @Secured({"ROLE_USER", "ROLE_ADMIN"})
     @GetMapping("/recherche/nom/{nom}")
     public ResponseEntity<VilleDto> rechercherParNom(@PathVariable String nom) throws VilleException{
         Ville resultat = villeService.extractVilleParNom(nom);
@@ -122,6 +130,7 @@ public class VilleControleur implements VilleControleursDocs {
     }
 
     @Override
+    @Secured({"ROLE_USER", "ROLE_ADMIN"})
     @GetMapping("/recherche/population-min/{min}")
     public ResponseEntity<List<VilleDto>> rechercherParPopulationMin(@PathVariable Integer min) throws VilleException{
         List<Ville> resultat = villeService.extractVillesParPopulationMin(min);
@@ -133,6 +142,7 @@ public class VilleControleur implements VilleControleursDocs {
     }
 
     @Override
+    @Secured({"ROLE_USER", "ROLE_ADMIN"})
     @GetMapping("/recherche/population-min-max/{min}/{max}")
     public ResponseEntity<List<VilleDto>> rechercherParPopulationMinMax(@PathVariable Integer min, @PathVariable Integer max) throws VilleException{
         List<Ville> resultat = villeService.extractVillesParPopulationMinMax(min, max);
@@ -144,6 +154,7 @@ public class VilleControleur implements VilleControleursDocs {
     }
 
     @Override
+    @Secured({"ROLE_USER", "ROLE_ADMIN"})
     @GetMapping("/departement/{idDepartement}/top/{n}")
     public ResponseEntity<List<VilleDto>> rechercherTopNParDepartement(@PathVariable int idDepartement, @PathVariable int n) throws VilleException{
         List<Ville> resultat = villeService.extractTopNVillesParDepartement(idDepartement, n);
@@ -155,6 +166,7 @@ public class VilleControleur implements VilleControleursDocs {
     }
 
     @Override
+    @Secured({"ROLE_USER", "ROLE_ADMIN"})
     @GetMapping("/departement/{idDepartement}/population")
     public ResponseEntity<List<VilleDto>> rechercherParDepartementEtPopulationMinMax(@PathVariable int idDepartement, @RequestParam Integer min, @RequestParam Integer max) throws VilleException{
         List<Ville> resultat = villeService.extractVillesParDepartementEtMinMax(idDepartement, min, max);
@@ -166,6 +178,7 @@ public class VilleControleur implements VilleControleursDocs {
     }
 
     @Override
+    @Secured({"ROLE_USER", "ROLE_ADMIN"})
     @GetMapping(value = "/export", produces = "text/csv")
     public ResponseEntity<byte[]> exporterVillesCsv(@RequestParam Integer min) throws VilleException{
         List<Ville> villes = villeService.extractVillesParPopulationMin(min);

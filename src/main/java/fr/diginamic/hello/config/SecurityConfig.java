@@ -4,10 +4,12 @@ import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.http.HttpMethod;
 import org.springframework.security.config.Customizer;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
 import org.springframework.security.web.SecurityFilterChain;
 
+@EnableMethodSecurity(securedEnabled = true)
 @Configuration
 public class SecurityConfig {
 
@@ -18,8 +20,6 @@ public class SecurityConfig {
         http.httpBasic(Customizer.withDefaults());
 
         http.authorizeHttpRequests(auth -> auth
-                .requestMatchers(HttpMethod.GET, "/ville", "/ville/**").hasAnyRole("USER", "ADMIN")
-                .requestMatchers(HttpMethod.POST, "/ville", "/ville/**").hasRole("ADMIN")
                 .anyRequest().authenticated()
         );
         return http.build();

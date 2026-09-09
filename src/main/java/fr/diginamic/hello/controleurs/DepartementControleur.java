@@ -8,10 +8,18 @@ import fr.diginamic.hello.export.DepartementPdfExporter;
 import fr.diginamic.hello.mappers.DepartementMapper;
 import fr.diginamic.hello.services.DepartementService;
 import fr.diginamic.hello.services.VilleService;
+import jakarta.validation.Valid;
 import org.springframework.http.ContentDisposition;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.annotation.Secured;
+import org.springframework.web.bind.annotation.DeleteMapping;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
@@ -49,6 +57,8 @@ public class DepartementControleur implements DepartementControleursDocs {
     }
 
     @Override
+    @Secured({"ROLE_USER", "ROLE_ADMIN"})
+    @GetMapping
     public List<DepartementDto> getDepartements(){
         // Ici, je récupère tous les Departement du service, puis je convertis chacun en DepartementDto avec le stream
         List<Departement> departements = departementService.extractDepartements();
@@ -56,7 +66,9 @@ public class DepartementControleur implements DepartementControleursDocs {
     }
 
     @Override
-    public ResponseEntity<DepartementDto> getDepartementParId(int id){
+    @Secured({"ROLE_USER", "ROLE_ADMIN"})
+    @GetMapping("/{id}")
+    public ResponseEntity<DepartementDto> getDepartementParId(@PathVariable int id){
         Departement departement = departementService.extractDepartement(id);
 
         if(departement == null){
@@ -68,7 +80,9 @@ public class DepartementControleur implements DepartementControleursDocs {
     }
 
     @Override
-    public ResponseEntity<String> insertDepartement(DepartementDto nouveauDepartementDto) throws VilleException{
+    @Secured("ROLE_ADMIN")
+    @PostMapping
+    public ResponseEntity<String> insertDepartement(@Valid @RequestBody DepartementDto nouveauDepartementDto) throws VilleException{
         // Ici, je convertis le DepartementDto reçu en Departement avant de le passer au service
         Departement nouveauDepartement = departementMapper.toBean(nouveauDepartementDto);
         departementService.insertDepartement(nouveauDepartement);
@@ -76,20 +90,26 @@ public class DepartementControleur implements DepartementControleursDocs {
     }
 
     @Override
-    public ResponseEntity<String> updateDepartement(int id, DepartementDto departementModifieDto) throws VilleException{
+    @Secured("ROLE_ADMIN")
+    @PutMapping("/{id}")
+    public ResponseEntity<String> updateDepartement(@PathVariable int id, @Valid @RequestBody DepartementDto departementModifieDto) throws VilleException{
         Departement departementModifie = departementMapper.toBean(departementModifieDto);
         departementService.updateDepartement(id, departementModifie);
         return ResponseEntity.ok("Département modifié avec succès");
     }
 
     @Override
-    public ResponseEntity<String> removeDepartement(int id) throws VilleException{
+    @Secured("ROLE_ADMIN")
+    @DeleteMapping("/{id}")
+    public ResponseEntity<String> removeDepartement(@PathVariable int id) throws VilleException{
         departementService.removeDepartement(id);
         return ResponseEntity.ok("Département supprimé avec succès");
     }
 
     @Override
-    public ResponseEntity<byte[]> exporterDepartementPdf(String code) throws VilleException{
+    @Secured({"ROLE_USER", "ROLE_ADMIN"})
+    @GetMapping(value = "/{code}/export", produces = "application/pdf")
+    public ResponseEntity<byte[]> exporterDepartementPdf(@PathVariable String code) throws VilleException{
         Departement departement = departementService.extractDepartementParCode(code);
 
         if(departement == null){
