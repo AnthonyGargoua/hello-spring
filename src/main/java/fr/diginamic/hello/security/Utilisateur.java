@@ -1,5 +1,6 @@
 package fr.diginamic.hello.security;
 
+import jakarta.persistence.*;
 import org.springframework.security.core.GrantedAuthority;
 import org.springframework.security.core.userdetails.UserDetails;
 
@@ -7,16 +8,29 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
+
+@Entity
 public class Utilisateur implements UserDetails {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private int id;
 
     private String username;
     private String password;
+
+    @ManyToMany
     private List<Role> roles = new ArrayList<>();
 
-    public Utilisateur(String username, String password, String roleName) {
+    public Utilisateur() {}
+
+    public Utilisateur(String username, String password) {
         this.username = username;
         this.password = password;
-        this.roles.add(new Role(roleName));
+    }
+
+    public void addRole(Role role) {
+        this.roles.add(role);
     }
 
     @Override

@@ -13,7 +13,7 @@ public class SecurityConfig {
 
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception{
-        http.csrf(csrf -> csrf.disable());
+        http.csrf(csrf -> csrf.disable()); // Accèder au POST/PUT/DELETE avec POSTMAN sinon connexion refusée
 
         http.httpBasic(Customizer.withDefaults());
 
@@ -27,6 +27,6 @@ public class SecurityConfig {
 
     @Bean
     public BCryptPasswordEncoder getEncoder() {
-        return new BCryptPasswordEncoder();
+        return new BCryptPasswordEncoder(12);
     }
 }

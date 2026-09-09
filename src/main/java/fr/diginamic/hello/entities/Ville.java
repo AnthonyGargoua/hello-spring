@@ -30,7 +30,7 @@ public class Ville {
     private Integer population;
     /** Département auquel appartient la ville. */
     @ManyToOne
-    @JoinColumn(name = "id_dept")
+    @JoinColumn(name= "id_dept", referencedColumnName = "id")
     private Departement departement;
 
     // Constructeur vide
